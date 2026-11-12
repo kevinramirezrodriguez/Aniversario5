@@ -1,1 +1,35 @@
-{"name": "Aniversario5", "short_name": "Aniversario5", "description": "Sembrar amor, generar amor, alimentar amor", "start_url": "./index.html", "scope": "./", "display": "standalone", "orientation": "portrait", "background_color": "#b3a4ec", "theme_color": "#b3a4ec", "icons": [{"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"}, {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}, {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}
+{
+ "id": "aniversario5-app",
+ "name": "Aniversario5",
+ "short_name": "Aniversario5",
+ "description": "Sembrar amor, generar amor, alimentar amor",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#b3a4ec",
+ "theme_color": "#b3a4ec",
+ "icons": [
+  {
+   "src": "icons/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icons/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icons/icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ],
+ "display_override": [
+  "standalone"
+ ]
+}

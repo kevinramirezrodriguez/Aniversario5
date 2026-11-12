@@ -151,6 +151,12 @@
   @keyframes gpop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   #g-intro, #g-fin, #g-win { z-index: 7; }
   #g-fin svg { animation: late 1s ease-in-out infinite; }
+  #g-joy { position: absolute; left: 14px; bottom: 70px; width: 112px; height: 112px; z-index: 4; border-radius: 50%; background: radial-gradient(rgba(255,255,255,.28), rgba(255,255,255,.12)); border: 3px solid rgba(255,255,255,.55); box-shadow: 0 4px 0 rgba(90,50,20,.6), 0 8px 18px rgba(0,0,0,.35); touch-action: none; -webkit-tap-highlight-color: transparent; }
+  #g-joy::before, #g-joy::after { content: ''; position: absolute; top: 50%; margin-top: -9px; border: 9px solid transparent; }
+  #g-joy::before { left: 7px; border-right: 12px solid rgba(255,255,255,.7); border-left: 0; }
+  #g-joy::after { right: 7px; border-left: 12px solid rgba(255,255,255,.7); border-right: 0; }
+  #g-knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: linear-gradient(#fff,#ffc4d6); border: 3px solid #e0457b; box-shadow: 0 3px 0 #a82a58; pointer-events: none; transition: transform .08s; }
+  #g-joy.on #g-knob { transition: none; }
 
 </style>
 </head>
@@ -858,12 +864,13 @@
   <button id="g-salir" class="vbtn">⌂ Menú</button>
   <div id="g-hud"><div class="ola">Oleada <b id="g-n">1</b>/5</div><div id="g-tbar"><i></i></div></div>
   <div id="g-boss" class="oculto"><span>JEFE FINAL</span><div><i></i></div></div>
-  <div id="g-amor"><div class="bar"><i></i></div><span>💗 0/15</span><button id="g-laser" class="oculto" aria-label="Ráfaga del esposo">⚡</button></div>
+  <div id="g-amor"><div class="bar"><i></i></div><span>💗 0/25</span><button id="g-laser" class="oculto" aria-label="Ráfaga del esposo">⚡</button></div>
   <div id="g-hint"></div>
+  <div id="g-joy" aria-label="Mando para mover a tu esposa"><i id="g-knob"></i></div>
   <button id="g-kiss" aria-label="Dar un beso">💋</button>
   <button id="g-fire" aria-label="Disparar"><svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="50" r="44" fill="#fff" stroke="#c2203f" stroke-width="6"/><circle cx="50" cy="50" r="30" fill="#e0304a"/><circle cx="50" cy="50" r="17" fill="#fff"/><circle cx="50" cy="50" r="8" fill="#e0304a"/></svg></button>
   <div id="g-msg" class="oculto"></div>
-  <div id="g-intro" class="velo2"><h2>Modo Gamer</h2><p>Arrastra con el dedo a tu esposa para moverla y dispara con el botón blanco. Acércate a tu esposo y toca el 💋 para llenar su barra de amor: ¡cuando esté llena, tócalo y disparará una ráfaga!</p><div class="yb"><button id="g-empezar">¡Empezar!</button></div></div>
+  <div id="g-intro" class="velo2"><h2>Modo Gamer</h2><p>Muévete con el mando de la izquierda y dispara con el botón blanco de la derecha. Acércate a tu esposo y toca el 💋 para llenar su barra de amor: ¡cuando esté llena, tócalo y disparará una ráfaga!</p><div class="yb"><button id="g-empezar">¡Empezar!</button></div></div>
   <div id="g-fin" class="velo2 oculto"><svg viewBox="0 0 100 100" width="150" height="150"><path d="M50 88 C10 58 6 30 24 20 C36 14 46 20 50 30 L44 42 L56 52 L46 66 L58 54 L50 44 L58 30 C62 18 76 14 86 24 C98 38 88 60 50 88Z" fill="#d6204f" stroke="#7c0f2c" stroke-width="2"/><path d="M50 30 L44 42 L56 52 L46 66" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/></svg><h2>Nos alcanzaron...</h2><p id="g-fin-p"></p><div class="yb"><button id="g-reint">Intentar de nuevo</button><button id="g-fin-salir" class="gris">Salir</button></div></div>
   <div id="g-win" class="velo2 oculto"><h2>Lo lograste amochi</h2><div class="yb"><button id="g-win-salir">Salir al menú</button></div></div>
 </div>
@@ -876,9 +883,9 @@ const AUD = (function () {
   function ensure() {
     if (!ctx) {
       const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
-      ctx = new C(); master = ctx.createGain(); master.gain.value = mute ? 0 : 1; master.connect(ctx.destination);
+      ctx = new C(); ctx.onstatechange = () => { if (ctx.state === 'running') arranca(); }; master = ctx.createGain(); master.gain.value = mute ? 0 : 1; master.connect(ctx.destination);
     }
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state !== 'running') { try { const p = ctx.resume(); if (p && p.then) p.then(arranca, () => { }); } catch (e) { } }
     return ctx;
   }
   function tone(out, f, t0, d, type, v) {
@@ -965,7 +972,7 @@ const AUD = (function () {
     else if (name === 'boss') { boom(0, 1.6, 3000, 60, .4); sweep(0, 180, 40, 1.2, 'sine', .35); [523.3, 659.3, 784, 1046.5, 1318.5].forEach((f, i) => tone(master, f, .5 + i * .13, 1.2, 'triangle', .13)); }
   }
   function arranca() {
-    if (!want || cur === want || !ensure()) return;
+    if (!want || !ensure() || ctx.state !== 'running' || cur === want) return;
     paraYa();
     const g = ctx.createGain(); g.gain.value = 0; g.gain.linearRampToValueAtTime(.9, ctx.currentTime + 1.2); g.connect(master);
     const st = GEN[want](g); cur = want;
@@ -973,9 +980,11 @@ const AUD = (function () {
   }
   function paraYa() { if (stopFn) { stopFn(); stopFn = null; } cur = null; }
   // los navegadores exigen un toque del usuario antes de dar sonido
-  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => arranca(), { passive: true }));
+  // (en celulares el permiso llega con el soltar el dedo / click, no con pointerdown)
+  ['pointerdown', 'pointerup', 'click', 'touchstart', 'touchend', 'keydown'].forEach(ev => document.addEventListener(ev, () => arranca(), { passive: true, capture: true }));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && want) arranca(); });
   return {
-    set(m) { want = m; if (!m) { paraYa(); return; } if (ctx && ctx.state === 'running') arranca(); else if (ctx) { ctx.resume(); arranca(); } },
+    set(m) { want = m; if (!m) { paraYa(); return; } if (ctx) { if (cur && cur !== m) paraYa(); arranca(); } },
     setMute(m) { mute = m; if (master) master.gain.value = m ? 0 : 1; },
     fx,
     get mute() { return mute; }
@@ -2208,8 +2217,8 @@ const GA = {"golem":{"u":"data:image/webp;base64,UklGRnSSAABXRUJQVlA4WAoAAAAQAAA
   /* ---------- Parámetros (editables) ---------- */
   const OLEADAS = [ // n = muñequitos por salida, cada = segundos entre salidas, vel = velocidad (fracción de pantalla por segundo)
     { n: 1, cada: 3, vel: .055 },
-    { n: 1, cada: 1.5, vel: .065 },
-    { n: 2, cada: 1.3, vel: .075 },
+    { n: 1, cada: 1.5, vel: .065, dano: 50 },   // oleada 2: cada disparo quita 50
+    { n: 2, cada: 1.3, vel: .075, dano: 50 },   // oleada 3: cada disparo quita 50
     { n: 4, cada: 1.1, vel: .09 },
     { n: 6, cada: 1, vel: .105, jefe: true }
   ];
@@ -2218,7 +2227,8 @@ const GA = {"golem":{"u":"data:image/webp;base64,UklGRnSSAABXRUJQVlA4WAoAAAAQAAA
   const VIDA_JEFE = 20000;  // vida del jefe final
   const DANO_BOLITA = 100;  // daño de cada bolita de luz
   const DANO_RAFAGA = 10000;// daño global de la ráfaga del esposo
-  const BESOS = 15;         // besos para llenar la barra de amor
+  const BESOS = 25;         // besos para llenar la barra de amor
+  const BESOS_JEFE = 40;    // besos que pide el esposo cuando sale el jefe final
   const VEL_JEFE = .022;    // velocidad del jefe (fracción de pantalla por segundo)
 
   /* ---------- Referencias ---------- */
@@ -2269,8 +2279,9 @@ const GA = {"golem":{"u":"data:image/webp;base64,UklGRnSSAABXRUJQVlA4WAoAAAAQAAA
     elN.textContent = ola + 1; elBoss.classList.add('oculto'); elT.style.transform = 'scaleX(1)'; pintaAmor();
     if (!callado) { msg('¡Prepárate!\nOleada ' + (ola + 1) + (OLEADAS[ola].jefe ? '\n¡Llega el jefe final!' : ''), 2300); AUD.fx('ola'); }
   }
+  const need = () => st.jefeSale ? BESOS_JEFE : BESOS;
   function pintaAmor() {
-    elAmorI.style.transform = `scaleX(${st.lleno ? 1 : st.besos / BESOS})`; elAmorT.textContent = st.lleno ? '¡Listo! Tócalo' : `💗 ${st.besos}/${BESOS}`;
+    elAmorI.style.transform = `scaleX(${st.lleno ? 1 : Math.min(1, st.besos / need())})`; elAmorT.textContent = st.lleno ? '¡Listo! Tócalo' : `💗 ${st.besos}/${need()}`;
     elAmor.classList.toggle('lleno', st.lleno); elLaser.classList.toggle('oculto', !st.lleno);
   }
   let msgT = 0;
@@ -2328,7 +2339,7 @@ const GA = {"golem":{"u":"data:image/webp;base64,UklGRnSSAABXRUJQVlA4WAoAAAAQAAA
   /* ---------- Juego ---------- */
   function spawn(boss) {
     const ew = (boss ? 290 : 58) * u, eh = ew * IMG.naturalHeight / IMG.naturalWidth, w = OLEADAS[st.ola];
-    enemies.push({ x: boss ? W / 2 : 28 * u + rs() * (W - 56 * u), y: -eh - (boss ? 0 : rs() * 40 * u), w: ew, h: eh, hp: boss ? VIDA_JEFE : VIDA, max: boss ? VIDA_JEFE : VIDA, boss, v: (boss ? VEL_JEFE : w.vel) * H * (boss ? 1 : (.92 + rs() * .16)), ph: rs() * 6.28, fl: 0 });
+    enemies.push({ x: boss ? W / 2 : 28 * u + rs() * (W - 98 * u), y: -eh - (boss ? 0 : rs() * 40 * u), w: ew, h: eh, hp: boss ? VIDA_JEFE : VIDA, max: boss ? VIDA_JEFE : VIDA, boss, v: (boss ? VEL_JEFE : w.vel) * H * (boss ? 1 : (.92 + rs() * .16)), ph: rs() * 6.28, fl: 0 });
   }
   function dispara() {
     if (!st || st.fase === 'perdio' || st.fase === 'gano' || st.fase === 'intro') return;
@@ -2337,10 +2348,10 @@ const GA = {"golem":{"u":"data:image/webp;base64,UklGRnSSAABXRUJQVlA4WAoAAAAQAAA
     parts.push({ x: tip[0], y: tip[1], vx: 0, vy: -40, life: .18, max: .18, t: 'dot', c: '#bff3ff', s: 9 * u });
   }
   function beso() {
-    if (!st || st.fase !== 'ataque') { hint('Los besos solo durante la oleada'); return; }
+    if (!st || !(st.fase === 'ataque' || (st.fase === 'limpiar' && st.jefeSale))) { hint('Los besos solo durante la oleada'); return; }
     if (Math.abs(st.wifeX - huskX()) > 104 * u) { hint('¡Acércate a tu esposo!'); return; }
     if (st.lleno) { hint('¡Su barra ya está llena!'); return; }
-    st.besos++; if (st.besos >= BESOS) { st.lleno = true; hub.s.y = -4; }
+    st.besos++; if (st.besos >= need()) { st.lleno = true; hub.s.y = -4; }
     pintaAmor(); wife.eyes(true); hub.eyes(true); setTimeout(() => { wife.eyes(false); hub.eyes(false); }, 450);
     const mx = (st.wifeX + huskX()) / 2, my = feetY - 120 * u;
     for (let i = 0; i < 4; i++) parts.push({ x: mx + (rs() - .5) * 40 * u, y: my, vx: (rs() - .5) * 60, vy: -(50 + rs() * 50), life: 1.1, max: 1.1, t: 'heart', c: '#ff4f86', s: (9 + rs() * 8) * u });
@@ -2376,16 +2387,17 @@ const GA = {"golem":{"u":"data:image/webp;base64,UklGRnSSAABXRUJQVlA4WAoAAAAQAAA
     const w = OLEADAS[st.ola]; st.t += dt;
     // movimiento de la esposa (muy ágil)
     if (keys.ArrowLeft) st.tgtX -= W * 1.6 * dt; if (keys.ArrowRight) st.tgtX += W * 1.6 * dt;
+    if (joy.dx) st.tgtX += joy.dx * W * 1.3 * dt;
     st.tgtX = clamp(st.tgtX, 28 * u, W - 28 * u); const px = st.wifeX; st.wifeX += (st.tgtX - st.wifeX) * Math.min(1, dt * 26); wife.place(st.wifeX, feetY);
     st.vx = (st.wifeX - px) / Math.max(dt, .001); wife.s.r = clamp(st.vx * .004, -5, 5) || wife.s.r * .8;
-    const cerca = st.fase === 'ataque' && Math.abs(st.wifeX - huskX()) <= 104 * u && !st.lleno; btnKiss.classList.toggle('on', cerca);
+    const cerca = (st.fase === 'ataque' || (st.fase === 'limpiar' && st.jefeSale)) && Math.abs(st.wifeX - huskX()) <= 104 * u && !st.lleno; btnKiss.classList.toggle('on', cerca);
     if (st.fase === 'intro') { if (st.t >= 2.4) { st.fase = 'ataque'; st.t = 0; st.spawnT = 0; } }
     else if (st.fase === 'ataque') {
       st.spawnT -= dt;
       if (st.spawnT <= 0 && st.t < DURACION) { for (let i = 0; i < w.n; i++) spawn(false); st.spawnT += w.cada; }
       elT.style.transform = `scaleX(${Math.max(0, 1 - st.t / DURACION)})`;
       if (st.t >= DURACION) {
-        if (w.jefe) { spawn(true); st.jefeSale = true; elBoss.classList.remove('oculto'); elBossI.style.transform = 'scaleX(1)'; msg('¡EL JEFE FINAL!', 1800); AUD.fx('ola'); }
+        if (w.jefe) { spawn(true); st.jefeSale = true; elBoss.classList.remove('oculto'); elBossI.style.transform = 'scaleX(1)'; msg('¡EL JEFE FINAL!\nAhora pide 40 besos', 2200); AUD.fx('ola'); pintaAmor(); }
         st.fase = 'limpiar'; st.t = 0;
       }
     } else if (st.fase === 'limpiar') {
@@ -2397,7 +2409,7 @@ const GA = {"golem":{"u":"data:image/webp;base64,UklGRnSSAABXRUJQVlA4WAoAAAAQAAA
     // bolitas de luz
     orbs.forEach(o => {
       o.y -= o.v * dt; if (o.dead) return;
-      for (const e of enemies) { if (e.hp > 0 && Math.abs(o.x - e.x) < e.w * .36 && o.y > e.y + e.h * .08 && o.y < e.y + e.h * .98) { o.dead = true; golpe(e, DANO_BOLITA); break; } }
+      for (const e of enemies) { if (e.hp > 0 && Math.abs(o.x - e.x) < e.w * .36 && o.y > e.y + e.h * .08 && o.y < e.y + e.h * .98) { o.dead = true; golpe(e, OLEADAS[st.ola].dano || DANO_BOLITA); break; } }
       if (o.y < -20) o.dead = true;
     });
     orbs = orbs.filter(o => !o.dead); enemies = enemies.filter(e => e.hp > 0);
@@ -2448,9 +2460,14 @@ const GA = {"golem":{"u":"data:image/webp;base64,UklGRnSSAABXRUJQVlA4WAoAAAAQAAA
   }
 
   /* ---------- Controles ---------- */
-  let drag = null;
+  let drag = null; const joy = { dx: 0, id: null }, elJoy = $('#g-joy'), elKnob = $('#g-knob');
+  function joyMove(e) { const r = elJoy.getBoundingClientRect(), R = r.width / 2, d = clamp((e.clientX - (r.left + R)) / (R * .7), -1, 1); joy.dx = Math.abs(d) < .12 ? 0 : d; elKnob.style.transform = `translateX(${(d * R * .6).toFixed(1)}px)`; }
+  function joyEnd() { joy.dx = 0; joy.id = null; elKnob.style.transform = 'translateX(0)'; elJoy.classList.remove('on'); }
+  elJoy.addEventListener('pointerdown', e => { e.preventDefault(); joy.id = e.pointerId; elJoy.classList.add('on'); try { elJoy.setPointerCapture(e.pointerId); } catch (_) { } joyMove(e); });
+  elJoy.addEventListener('pointermove', e => { if (joy.id === e.pointerId) joyMove(e); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => elJoy.addEventListener(ev, e => { if (joy.id === e.pointerId) joyEnd(); }));
   root.addEventListener('pointerdown', e => {
-    if (!st || e.target.closest('button,.velo2')) return;
+    if (!st || e.target.closest('button,.velo2,#g-joy')) return;
     const r = root.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     if (st.lleno && Math.abs(x - huskX()) < 56 * u && y > feetY - 200 * u) { rafaga(); return; }
     if (y > H * .45 && Math.abs(x - st.wifeX) < 90 * u + 20) { drag = { id: e.pointerId, off: st.wifeX - x }; try { root.setPointerCapture(e.pointerId); } catch (_) { } }
@@ -2471,13 +2488,13 @@ const GA = {"golem":{"u":"data:image/webp;base64,UklGRnSSAABXRUJQVlA4WAoAAAAQAAA
     resize(); nuevoEstado(0, true); st.fase = 'espera'; elMsg.classList.add('oculto');
     last = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
   }
-  function cerrar() { abierto = false; cancelAnimationFrame(raf); document.body.classList.remove('en-gamer'); elMsg.classList.add('oculto'); elHint.classList.remove('on'); }
+  function cerrar() { abierto = false; joyEnd(); cancelAnimationFrame(raf); document.body.classList.remove('en-gamer'); elMsg.classList.add('oculto'); elHint.classList.remove('on'); }
   $('#g-empezar').addEventListener('click', () => { $('#g-intro').classList.add('oculto'); const k = st; nuevoEstado(0); st.fase = 'intro'; void k; });
   $('#g-reint').addEventListener('click', () => { const o = st.ola; $('#g-fin').classList.add('oculto'); nuevoEstado(o); });
   const salir = () => { cerrar(); abrirMenu(); };
   $('#g-salir').addEventListener('click', salir); $('#g-fin-salir').addEventListener('click', salir); $('#g-win-salir').addEventListener('click', salir);
   $('#modo-gamer').addEventListener('click', () => { document.body.classList.remove('en-menu'); abrir(); });
-  window.__g = { get st() { return st; }, get enemies() { return enemies; }, setTS(v) { tiempoJuego = v; }, rafaga, beso, dispara, nuevoEstado, abrir, llenar() { st.besos = BESOS; st.lleno = true; pintaAmor(); }, get W() { return W; }, get H() { return H; } };
+  window.__g = { get st() { return st; }, get enemies() { return enemies; }, setTS(v) { tiempoJuego = v; }, rafaga, beso, dispara, nuevoEstado, abrir, llenar() { st.besos = need(); st.lleno = true; pintaAmor(); }, get W() { return W; }, get H() { return H; } };
 })();
 
 </script>
