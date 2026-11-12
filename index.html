@@ -870,7 +870,7 @@
   <button id="g-kiss" aria-label="Dar un beso">💋</button>
   <button id="g-fire" aria-label="Disparar"><svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="50" r="44" fill="#fff" stroke="#c2203f" stroke-width="6"/><circle cx="50" cy="50" r="30" fill="#e0304a"/><circle cx="50" cy="50" r="17" fill="#fff"/><circle cx="50" cy="50" r="8" fill="#e0304a"/></svg></button>
   <div id="g-msg" class="oculto"></div>
-  <div id="g-intro" class="velo2"><h2>Modo Gamer</h2><p>Muévete con el mando de la izquierda y dispara con el botón blanco de la derecha. Acércate a tu esposo y toca el 💋 para llenar su barra de amor: ¡cuando esté llena, tócalo y disparará una ráfaga!</p><div class="yb"><button id="g-empezar">¡Empezar!</button></div></div>
+  <div id="g-intro" class="velo2"><h2>Modo Gamer</h2><p>Muévete con el mando de la izquierda y dispara con el botón blanco de la derecha. Acércate a tu esposo y toca el 💋 para llenar su barra de amor: ¡cuando esté llena, tócalo y disparará una ráfaga! Recuerda que tú esposo puede ser la clave</p><div class="yb"><button id="g-empezar">¡Empezar!</button></div></div>
   <div id="g-fin" class="velo2 oculto"><svg viewBox="0 0 100 100" width="150" height="150"><path d="M50 88 C10 58 6 30 24 20 C36 14 46 20 50 30 L44 42 L56 52 L46 66 L58 54 L50 44 L58 30 C62 18 76 14 86 24 C98 38 88 60 50 88Z" fill="#d6204f" stroke="#7c0f2c" stroke-width="2"/><path d="M50 30 L44 42 L56 52 L46 66" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/></svg><h2>Nos alcanzaron...</h2><p id="g-fin-p"></p><div class="yb"><button id="g-reint">Intentar de nuevo</button><button id="g-fin-salir" class="gris">Salir</button></div></div>
   <div id="g-win" class="velo2 oculto"><h2>Lo lograste amochi</h2><div class="yb"><button id="g-win-salir">Salir al menú</button></div></div>
 </div>
@@ -2216,10 +2216,10 @@ const GA = {"golem":{"u":"data:image/webp;base64,UklGRnSSAABXRUJQVlA4WAoAAAAQAAA
   'use strict';
   /* ---------- Parámetros (editables) ---------- */
   const OLEADAS = [ // n = muñequitos por salida, cada = segundos entre salidas, vel = velocidad (fracción de pantalla por segundo)
-    { n: 1, cada: 3, vel: .055 },
-    { n: 1, cada: 1.5, vel: .065, dano: 50 },   // oleada 2: cada disparo quita 50
-    { n: 2, cada: 1.3, vel: .075, dano: 50 },   // oleada 3: cada disparo quita 50
-    { n: 4, cada: 1.1, vel: .09 },
+    { n: 2, cada: 3, vel: .055 },
+    { n: 2, cada: 1.5, vel: .065, dano: 50 },   // oleada 2: cada disparo quita 50
+    { n: 4, cada: 1.3, vel: .075, dano: 50 },   // oleada 3: cada disparo quita 50
+    { n: 4, cada: .85, vel: .09 },
     { n: 6, cada: 1, vel: .105, jefe: true }
   ];
   const DURACION = 40;      // segundos de ataque por oleada
@@ -2227,6 +2227,7 @@ const GA = {"golem":{"u":"data:image/webp;base64,UklGRnSSAABXRUJQVlA4WAoAAAAQAAA
   const VIDA_JEFE = 20000;  // vida del jefe final
   const DANO_BOLITA = 100;  // daño de cada bolita de luz
   const DANO_RAFAGA = 10000;// daño global de la ráfaga del esposo
+  const DANO_RAFAGA_JEFE = 5000; // daño de la ráfaga al jefe final
   const BESOS = 25;         // besos para llenar la barra de amor
   const BESOS_JEFE = 40;    // besos que pide el esposo cuando sale el jefe final
   const VEL_JEFE = .022;    // velocidad del jefe (fracción de pantalla por segundo)
@@ -2364,7 +2365,7 @@ const GA = {"golem":{"u":"data:image/webp;base64,UklGRnSSAABXRUJQVlA4WAoAAAAQAAA
     hub.s.y = -3; setTimeout(() => hub.s.y = 0, 150);
     for (let i = 0; i < 16; i++) { const tx = (i + .5) / 16 * W + (rs() - .5) * 20, d = i * .025; beams.push({ x0: mz[0], y0: mz[1], x1: tx, y1: -10, life: .55, max: .55, d, w: (3 + rs() * 3) * u }); }
     flash = .35;
-    enemies.forEach(e => { if (e.y + e.h > 0) golpe(e, DANO_RAFAGA); });
+    enemies.forEach(e => { if (e.y + e.h > 0) golpe(e, e.boss ? DANO_RAFAGA_JEFE : DANO_RAFAGA); });
   }
   function golpe(e, d) {
     if (e.hp <= 0) return; e.hp -= d; e.fl = .09;
